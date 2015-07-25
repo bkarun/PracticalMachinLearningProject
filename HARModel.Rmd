@@ -1,0 +1,63 @@
+---
+title: "HARProject"
+author: "Bipin Karunakaran"
+date: "July 25, 2015"
+output: html_document
+---
+### Synopsis:
+This is the report on the analysis done on the Human Activity report data submitted as part of the Practical Machine Learning Course from John Hopkin's University offered through Coursera. 
+
+The objective is to analyze the data on Excercise activity and fit a model that predicts the 5 classes of excercise performed, based on the data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They performed barbell lifts correctly and incorrectly in 5 different ways. Class A correponds to the correct technique and classes B to E corresponds to various wrong techniques. 
+
+The data set downloaded from http://groupware.les.inf.puc-rio.br/har is used for fitting the model with 'classe' as the target variable. Two methods, RPART and Random Forest were used with cross validation, and the model was applied to the 20 test cases given.
+
+###Preprocessing
+The data had variable with too many missing values. Since the proportion of missing rows were > 90%, it is better to remove those variables rather than attempting any imputation method. Also the first 7 variables are label variables and can therefore be removed
+
+```{r comment= FALSE, warning= FALSE, message=FALSE}
+#read in the data
+harTrain <- read.csv("pml-training.csv", na.strings=c("NA",""))
+ncol(harTrain)
+#remove variables with >90% missing values
+harTrainSub <- harTrain[,colSums(is.na(harTrain)) <= .9*nrow(harTrain)]
+#removing the first 7 columns 
+harTrainSub <- harTrainSub[,-(1:7)]
+ncol(harTrainSub)
+# checking for any more missings
+ncol(harTrainSub[,colSums(is.na(harTrainSub))])
+```
+Splitting the data into training and testing subsets
+```{r,  comment= FALSE, warning= FALSE, message=FALSE}
+library(caret)
+set.seed(100)
+splt <- createDataPartition(harTrainSub$classe, p =0.7, list = F)
+training <- harTrainSub[splt,]
+testing <- harTrainSub[-splt,]
+```
+####RPART(Recursive Partitioning and Regression Trees) Model
+An Rpart model is first attempted. ***K- fold cross validation*** is done using trainControl function in the caret package, setting the number of folds = 10 
+```{r warning= FALSE, message=FALSE}
+mdlTree <- train(classe~., data = training, method = "rpart",  trControl = trainControl(method = "cv", number = 10) )
+library(rattle)
+library(rpart)
+library(rpart.plot)
+fancyRpartPlot(mdlTree$finalModel)
+#Applying the model to the testing set and checking the accuracy
+predTree <- predict(mdlTree, newdata = testing)
+confusionMatrix(predTree, testing$classe)
+```
+The accuracy of the model is hardly 50%, which is better than the baseline accuracy of 28% (Predicting the most frequent class (A) for all). However, we can attempt to improve this using other ML algorithms
+
+####Random Forest
+The train functin in caret package with method = "rf" is used to build a random forest model including the trainControl function with ***cross validation***, k = 10  
+```{r warning= FALSE, message=FALSE}
+set.seed(100)
+mdlRF<- train(classe~., data = training, method = "rf",trControl = trainControl(method = "cv", number = 10) )
+#Plotting the variables in order of importance
+plot(varImp(mdlRF))
+#Applying the model to the testing set and checking the accuracy
+predRF <- predict(mdlRF, newdata = testing)
+confusionMatrix(predRF, testing$classe)
+```
+The random forest model predicts with a high degree of accuracy of 99.4% when applied to the test set. So the model when applied to out of sample should give that level of accuracy, and the expected out of sample error should be about 0.6%
+
