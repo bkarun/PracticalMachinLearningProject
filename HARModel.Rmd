@@ -46,13 +46,14 @@ fancyRpartPlot(mdlTree$finalModel)
 predTree <- predict(mdlTree, newdata = testing)
 confusionMatrix(predTree, testing$classe)
 ```
-The accuracy of the model is hardly 50%, which is better than the baseline accuracy of 28% (Predicting the most frequent class (A) for all). However, we can attempt to improve this using other ML algorithms
+The accuracy of the model is hardly 50%, which is better than the baseline accuracy of 28% (Predicting the most frequent class (A) for all). However, we can attempt to improve this using other ML algorithms. Changind the value of K did not yield any substantial improvements in the accuracy of the model. 
 
 ####Random Forest
-The train functin in caret package with method = "rf" is used to build a random forest model including the trainControl function with ***cross validation***, k = 10  
+The train functin in caret package with method = "rf" is used to build a random forest model including the trainControl function with ***cross validation***, k = 10. K is chosen to be 10, to be a number that could be handled by the random forest algorithm based on the RAM limitation and run time on my machine.    
 ```{r warning= FALSE, message=FALSE}
 set.seed(100)
 mdlRF<- train(classe~., data = training, method = "rf",trControl = trainControl(method = "cv", number = 10) )
+save(mdlRF,file = "harRF.RData")
 #Plotting the variables in order of importance
 plot(varImp(mdlRF))
 #Applying the model to the testing set and checking the accuracy
@@ -60,4 +61,8 @@ predRF <- predict(mdlRF, newdata = testing)
 confusionMatrix(predRF, testing$classe)
 ```
 The random forest model predicts with a high degree of accuracy of 99.4% when applied to the test set. So the model when applied to out of sample should give that level of accuracy, and the expected out of sample error should be about 0.6%
+
+#####Conclusion
+The model was applied to the data set with 20 test cases and the resulting predictions were found to be 100 % accurate as per the submission results. So, as predicted, the random forest model had a high degree of accuracy. 
+
 
